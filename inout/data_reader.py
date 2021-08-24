@@ -13,6 +13,6 @@ def read_dijet_samples(path):
     with h5py.File(path,'r') as f:
         consti = np.asarray(f.get(key)) # [N x 2 x 100 x 3]
     samples = np.vstack([consti[:,0,:,:], consti[:,1,:,:]])
-    np.shuffle(samples)
+    np.random.shuffle(samples)
     return samples
 
