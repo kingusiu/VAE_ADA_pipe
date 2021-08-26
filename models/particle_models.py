@@ -13,26 +13,22 @@ class ParticleAutoencoder(base.AE):
         applicable to particle-list inputs
     '''
 
-    def __init__(self, input_shape=(100,3), latent_dim=6, x_mean_stdev=(0,1), kernel_n=16, kernel_sz=3, activation='elu', **kwargs):
-        super().__init__(**kwargs)
-        self._input_shape = input_shape
+    def __init__(self, input_shape=(100,3), latent_dim=6, kernel_n=16, kernel_2D_sz=(1,3), kernel_1D_sz=3, activation='elu', initializer='he_uniform', **kwargs):
+        super().__init__(input_shape=input_shape, **kwargs)
         self.latent_dim = latent_dim
         self.kernel_n = kernel_n
         self.kernel_sz = kernel_sz
         self.activation = activation
-        self.initializer = 'he_uniform'
-        self.kernel_1D_sz = 3
+        self.initializer = initializer
         self.x_mean_stdev = x_mean_stdev
         self.encoder = self.build_encoder(*self.x_mean_stdev)
         self.decoder = self.build_decoder(*self.x_mean_stdev)
 
 
-    def build_encoder(self, mean, stdev):
-        inputs = tf.keras.layers.Input(shape=self._input_shape, dtype=tf.float32, name='encoder_input')
-        # normalize
-        normalized = layers.StdNormalization(mean_x=mean, std_x=stdev)(inputs)
+    def build_encoder(self):
+        inputs = tf.keras.layers.Input(shape=self.params.input_shape, dtype=tf.float32, name='encoder_input')
         # add channel dim
-        x = tf.keras.layers.Lambda(lambda x: tf.expand_dims(x, axis=3))(normalized) # [B x 100 x 3] => [B x 100 x 3 x 1]
+        x = tf.keras.layers.Lambda(lambda x: tf.expand_dims(x, axis=3))(inputs) # [B x 100 x 3] => [B x 100 x 3 x 1]
         # 2D Conv
         x = tf.keras.layers.Conv2D(filters=self.kernel_n, kernel_size=self.kernel_sz, activation=self.activation, kernel_initializer=self.initializer)(x)
         # Squeeze
@@ -60,7 +56,6 @@ class ParticleAutoencoder(base.AE):
         # instantiate encoder model
         encoder = tf.keras.Model(name='encoder', inputs=inputs, outputs=z)
         encoder.summary()
-        # plot_model(encoder, to_file=CONFIG['plotdir']+'vae_cnn_encoder.png', show_shapes=True)
         return encoder
 
     def build_decoder(self, mean, stdev):
